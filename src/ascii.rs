@@ -2,20 +2,18 @@
 
 use image::{DynamicImage, RgbImage};
 use std::error::Error;
-use std::io::Write;
 use std::path::{Path, PathBuf};
 use structopt::StructOpt;
-use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
 
 // 10 levels of grayscale
 const GSCALE_10: &[char] = &[' ', '.', ':', '-', '=', '+', '*', '#', '%', '@'];
 const GSCALE_70: &str = " .\"`^\",:;Il!i~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$";
 const GAMMA: f64 = 2.2;
 
-type AsciiOutput = Vec<Vec<(char, AsciiColor)>>;
+pub type AsciiOutput = Vec<Vec<(char, AsciiColor)>>;
 
 #[derive(Debug)]
-enum AsciiColor {
+pub enum AsciiColor {
     RGB(u8, u8, u8),
     Grayscale(u8),
 }
@@ -45,77 +43,37 @@ impl AsciiColor {
 // Image to ASCII converter
 #[derive(StructOpt, Debug)]
 #[structopt(name = "comicli")]
-struct Opt {
+pub struct Opt {
     // Enable colored output
     #[structopt(short = "c", long = "color")]
-    color: bool,
+    pub color: bool,
 
     // Enable braille mode
     #[structopt(short = "b", long = "braille")]
-    braille: bool,
+    pub braille: bool,
 
     #[structopt(short = "w", long = "width", default_value = "80")]
     // Width in characters of the output
-    width: u32,
+    pub width: u32,
 
     #[structopt(short = "d", long = "depth", default_value = "70")]
     // Lumince depth to use. (Number of unique characters)
-    depth: u8,
+    pub depth: u8,
 
     #[structopt(short = "h", long = "height")]
     // Height in characters of the output
-    height: Option<u32>,
+    pub height: Option<u32>,
 
     #[structopt(long = "bg")]
     // Enable coloring of background chars
-    bg: bool,
+    pub bg: bool,
 
     // Path of image file to convert
     #[structopt(name = "IMAGE", parse(from_os_str))]
-    image: PathBuf,
+    pub image: PathBuf,
 }
 
-pub fn main() -> Result<(), Box<dyn Error>> {
-    let mut stdout = StandardStream::stdout(ColorChoice::Always);
-    stdout.set_color(ColorSpec::new().set_fg(Some(Color::White)))?;
-
-    let opt = Opt::from_args();
-
-    // Load image
-    let mut a = Ascii::from_opt(&opt)?;
-    // Convert image to ASCII
-    let output = a.run()?;
-
-    stdout.flush()?;
-
-    for row in output {
-        for col in row {
-            if opt.color {
-                let (r, g, b) = match col.1 {
-                    AsciiColor::RGB(r, g, b) => (r, g, b),
-                    _ => (0, 0, 0),
-                };
-
-                if opt.bg {
-                    stdout.set_color(ColorSpec::new().set_fg(Some(Color::Rgb(
-                        255 - r,
-                        255 - g,
-                        255 - b,
-                    ))))?;
-                    stdout.set_color(ColorSpec::new().set_bg(Some(Color::Rgb(r, g, b))))?;
-                } else {
-                    stdout.set_color(ColorSpec::new().set_fg(Some(Color::Rgb(r, g, b))))?;
-                }
-            }
-            write!(&mut stdout, "{}", col.0)?;
-        }
-        writeln!(&mut stdout, "")?;
-    }
-
-    Ok(())
-}
-
-struct Ascii {
+pub struct Ascii {
     // Image
     pub image: RgbImage,
     // Image dimensions
