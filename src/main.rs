@@ -1,18 +1,21 @@
 mod ascii;
+mod opt;
 
 extern crate reqwest;
 extern crate serde_json;
 
 use reqwest::StatusCode;
-use serde_json::{Result as SerdeResult, Value};
+use serde_json::Value;
 use std::error::Error;
-use std::io::{Error as IOError, ErrorKind, Write};
+use std::io::Write;
 use structopt::StructOpt;
 use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
 
 use ascii::*;
+use opt::Opt;
 
 fn main() -> Result<(), Box<dyn Error>> {
+    // Setup terminal settings for stdout and stderr
     let mut stdout = StandardStream::stdout(ColorChoice::Always);
     let mut stderr = StandardStream::stderr(ColorChoice::Always);
     stdout.set_color(ColorSpec::new().set_fg(Some(Color::White)))?;
@@ -27,11 +30,12 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // Load image
     let mut a = Ascii::new(&opt, image_buf)?;
-    // // Convert image to ASCII
+    // Convert image to ASCII
     let output = a.run()?;
 
     stdout.flush()?;
 
+    // Display the ASCII characters to stdout
     display(&output, &opt, &mut stdout)?;
 
     Ok(())
@@ -47,12 +51,14 @@ fn get_image_url(image_opt: &Vec<&str>) -> Result<String, String> {
             } else {
                 url = String::from("https://xkcd.com/info.0.json");
             }
+
             // Make the request to XKCD
             let res = reqwest::blocking::get(&url).map_err(|e| format!("HTTP error: {}", e))?;
             // Check if ID is invalid
             if res.status() == StatusCode::NOT_FOUND {
                 return Err(String::from("unknown comic ID"));
             }
+
             // Hacky method of error handling, but errors shouldn't occur here
             let res_val: Value = serde_json::from_str(&res.text().expect("error")).expect("error");
             let image_str = res_val["img"].as_str().unwrap(); // "img" is a key of JSON response
@@ -63,7 +69,10 @@ fn get_image_url(image_opt: &Vec<&str>) -> Result<String, String> {
 }
 
 fn get_image_buf(image_url: String) -> Result<Vec<u8>, Box<dyn Error>> {
+    // Fetch the actual image
     let mut res = reqwest::blocking::get(&image_url)?;
+
+    // Dump the image data to a vector buffer
     let mut res_vec: Vec<u8> = vec![];
     res.copy_to(&mut res_vec)?;
     Ok(res_vec)
