@@ -4,6 +4,7 @@ mod opt;
 extern crate reqwest;
 extern crate serde_json;
 
+use rand::{thread_rng, Rng};
 use reqwest::StatusCode;
 use serde_json::Value;
 use std::error::Error;
@@ -44,15 +45,28 @@ fn main() -> Result<(), Box<dyn Error>> {
 fn get_image_url(image_opt: &Vec<&str>) -> Result<String, String> {
     match image_opt[0] {
         "xkcd" => {
-            // Either use comic with specified ID or latest comic
+            // Either use comic with specified ID or random ID
             let url: String;
             if image_opt.len() > 1 {
                 url = format!("https://xkcd.com/{}/info.0.json", image_opt[1]);
             } else {
-                url = String::from("https://xkcd.com/info.0.json");
+                // Make the request to xkcd
+                let res = reqwest::blocking::get("https://xkcd.com/info.0.json")
+                    .map_err(|e| format!("HTTP error: {}", e))?;
+                // Hacky method of error handling, but errors shouldn't occur here
+                let res_val: Value =
+                    serde_json::from_str(&res.text().expect("error")).expect("error");
+                // Get the most recent comic's ID
+                let max_id = res_val["num"].as_u64().unwrap();
+
+                // Generate a random ID
+                let mut rng = thread_rng();
+                let id: u64 = rng.gen_range(1, max_id);
+
+                url = format!("https://xkcd.com/{}/info.0.json", id.to_string());
             }
 
-            // Make the request to XKCD
+            // Make the request to xkcd
             let res = reqwest::blocking::get(&url).map_err(|e| format!("HTTP error: {}", e))?;
             // Check if ID is invalid
             if res.status() == StatusCode::NOT_FOUND {
