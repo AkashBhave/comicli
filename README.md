@@ -3,6 +3,8 @@
 A webcomic to ASCII art program written in Rust.
 Also a fun way to practice the language.
 
+[![asciicast](https://asciinema.org/a/05de0BYy7CQ0ressis8uUcSba.svg)](https://asciinema.org/a/05de0BYy7CQ0ressis8uUcSba)
+
 ## Usage
 
 ```
