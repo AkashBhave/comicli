@@ -69,8 +69,8 @@ pub struct Opt {
     pub bg: bool,
 
     // Path of image file to convert
-    #[structopt(name = "IMAGE", parse(from_os_str))]
-    pub image: PathBuf,
+    #[structopt(name = "image")]
+    pub image: String,
 }
 
 pub struct Ascii {
@@ -87,7 +87,7 @@ pub struct Ascii {
 
 impl Ascii {
     // Convert CLI options to a Ascii instance
-    pub fn from_opt(opt: &Opt) -> Result<Self, Box<dyn Error>> {
+    pub fn new(opt: &Opt) -> Result<Self, Box<dyn Error>> {
         let im: DynamicImage = image::open(&Path::new(&opt.image))?;
         let im = im.to_rgb();
         let aspect = im.height() as f64 / im.width() as f64;

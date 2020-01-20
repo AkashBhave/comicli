@@ -1,7 +1,12 @@
 mod ascii;
 
+extern crate reqwest;
+extern crate serde_json;
+
+use serde_json::{Result as SerdeResult, Value};
+use std::collections::HashMap;
 use std::error::Error;
-use std::io::Write;
+use std::io::{Error as IOError, ErrorKind, Write};
 use structopt::StructOpt;
 use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
 
@@ -9,20 +14,39 @@ use ascii::*;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let mut stdout = StandardStream::stdout(ColorChoice::Always);
+    let mut stderr = StandardStream::stderr(ColorChoice::Always);
     stdout.set_color(ColorSpec::new().set_fg(Some(Color::White)))?;
+    stderr.set_color(ColorSpec::new().set_fg(Some(Color::Red)))?;
 
     let opt = Opt::from_args();
 
-    // Load image
-    let mut a = Ascii::from_opt(&opt)?;
-    // Convert image to ASCII
-    let output = a.run()?;
+    let image_opt: Vec<&str> = opt.image.split(":").collect();
 
-    stdout.flush()?;
+    let image_url = get_image_url(&image_opt)?;
+    // get_image(image_url);
 
-    display(&output, &opt, &mut stdout)?;
+    // // Load image
+    // let mut a = Ascii::new(&opt)?;
+    // // Convert image to ASCII
+    // let output = a.run()?;
+
+    // stdout.flush()?;
+
+    // display(&output, &opt, &mut stdout)?;
 
     Ok(())
+}
+
+fn get_image_url(image_opt: &Vec<&str>) -> Result<String, Box<dyn Error>> {
+    match image_opt[0] {
+        "xkcd" => {
+            let url = format!("https://xkcd.com/{}/info.0.json", image_opt[1]);
+            let res_text = reqwest::blocking::get(&url)?.text()?;
+            let res: Value = serde_json::from_str(&res_text)?;
+            Ok(res["img"].to_string())
+        }
+        _ => Err(Box::new(IOError::new(ErrorKind::Other, "unknown source"))),
+    }
 }
 
 fn display(

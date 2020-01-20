@@ -10,3 +10,5 @@ edition = "2018"
 structopt = "0.2"
 image = "0.21.2"
 termcolor = "1"
+reqwest = { version = "0.10", features = ["blocking", "json"] }
+serde_json = "1.0"
