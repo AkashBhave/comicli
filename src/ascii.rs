@@ -87,8 +87,8 @@ pub struct Ascii {
 
 impl Ascii {
     // Convert CLI options to a Ascii instance
-    pub fn new(opt: &Opt) -> Result<Self, Box<dyn Error>> {
-        let im: DynamicImage = image::open(&Path::new(&opt.image))?;
+    pub fn new(opt: &Opt, image_buf: Vec<u8>) -> Result<Self, Box<dyn Error>> {
+        let im: DynamicImage = image::load_from_memory(&image_buf.as_slice())?;
         let im = im.to_rgb();
         let aspect = im.height() as f64 / im.width() as f64;
         let height = match opt.height {

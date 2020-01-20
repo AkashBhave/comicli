@@ -23,16 +23,17 @@ fn main() -> Result<(), Box<dyn Error>> {
     let image_opt: Vec<&str> = opt.image.split(":").collect();
 
     let image_url = get_image_url(&image_opt)?;
-    // get_image(image_url);
+    println!("{}", &image_url);
+    let image_buf = get_image_buf(image_url)?;
 
-    // // Load image
-    // let mut a = Ascii::new(&opt)?;
+    // Load image
+    let mut a = Ascii::new(&opt, image_buf)?;
     // // Convert image to ASCII
-    // let output = a.run()?;
+    let output = a.run()?;
 
-    // stdout.flush()?;
+    stdout.flush()?;
 
-    // display(&output, &opt, &mut stdout)?;
+    display(&output, &opt, &mut stdout)?;
 
     Ok(())
 }
@@ -43,10 +44,18 @@ fn get_image_url(image_opt: &Vec<&str>) -> Result<String, Box<dyn Error>> {
             let url = format!("https://xkcd.com/{}/info.0.json", image_opt[1]);
             let res_text = reqwest::blocking::get(&url)?.text()?;
             let res: Value = serde_json::from_str(&res_text)?;
-            Ok(res["img"].to_string())
+            let image_str = res["img"].as_str().unwrap();
+            Ok(String::from(image_str))
         }
         _ => Err(Box::new(IOError::new(ErrorKind::Other, "unknown source"))),
     }
+}
+
+fn get_image_buf(image_url: String) -> Result<Vec<u8>, Box<dyn Error>> {
+    let mut res = reqwest::blocking::get(&image_url)?;
+    let mut res_vec: Vec<u8> = vec![];
+    res.copy_to(&mut res_vec)?;
+    Ok(res_vec)
 }
 
 fn display(
