@@ -3,8 +3,8 @@ mod ascii;
 extern crate reqwest;
 extern crate serde_json;
 
+use reqwest::StatusCode;
 use serde_json::{Result as SerdeResult, Value};
-use std::collections::HashMap;
 use std::error::Error;
 use std::io::{Error as IOError, ErrorKind, Write};
 use structopt::StructOpt;
@@ -23,7 +23,6 @@ fn main() -> Result<(), Box<dyn Error>> {
     let image_opt: Vec<&str> = opt.image.split(":").collect();
 
     let image_url = get_image_url(&image_opt)?;
-    println!("{}", &image_url);
     let image_buf = get_image_buf(image_url)?;
 
     // Load image
@@ -38,16 +37,28 @@ fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn get_image_url(image_opt: &Vec<&str>) -> Result<String, Box<dyn Error>> {
+fn get_image_url(image_opt: &Vec<&str>) -> Result<String, String> {
     match image_opt[0] {
         "xkcd" => {
-            let url = format!("https://xkcd.com/{}/info.0.json", image_opt[1]);
-            let res_text = reqwest::blocking::get(&url)?.text()?;
-            let res: Value = serde_json::from_str(&res_text)?;
-            let image_str = res["img"].as_str().unwrap();
+            // Either use comic with specified ID or latest comic
+            let url: String;
+            if image_opt.len() > 1 {
+                url = format!("https://xkcd.com/{}/info.0.json", image_opt[1]);
+            } else {
+                url = String::from("https://xkcd.com/info.0.json");
+            }
+            // Make the request to XKCD
+            let res = reqwest::blocking::get(&url).map_err(|e| format!("HTTP error: {}", e))?;
+            // Check if ID is invalid
+            if res.status() == StatusCode::NOT_FOUND {
+                return Err(String::from("unknown comic ID"));
+            }
+            // Hacky method of error handling, but errors shouldn't occur here
+            let res_val: Value = serde_json::from_str(&res.text().expect("error")).expect("error");
+            let image_str = res_val["img"].as_str().unwrap(); // "img" is a key of JSON response
             Ok(String::from(image_str))
         }
-        _ => Err(Box::new(IOError::new(ErrorKind::Other, "unknown source"))),
+        _ => Err(String::from("unknown source")),
     }
 }
 
